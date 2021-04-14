@@ -39,7 +39,7 @@ public class Main extends Application {
 		Scene initScene = new Scene(fileChooserView);
 
 		primaryStage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
-		primaryStage.setTitle("Brunifier");
+		primaryStage.setTitle("Sistema de Marcado Estructural");
 		primaryStage.setScene(initScene);
 		primaryStage.setResizable(false);
 		primaryStage.addEventHandler(KeyEvent.KEY_RELEASED, (KeyEvent event) -> {

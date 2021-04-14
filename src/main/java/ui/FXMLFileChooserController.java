@@ -1,6 +1,7 @@
 package main.java.ui;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +28,7 @@ import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import main.java.cp.aedd.CMasMasProcedural;
+import main.java.cp.cPlusPlus.Cambiame;
 import main.java.cp.exception.UnsupportedLanguageException;
 import main.java.cp.model.Lenguaje;
 import main.java.cp.model.Procesamiento;
@@ -140,6 +142,7 @@ public class FXMLFileChooserController implements Initializable {
 
 	private void aceptar() {
 		Lenguaje lenguaje = cbLenguajes.getValue();
+		System.out.println(lenguaje.toString());
 		List<File> archivos = archivosListView.getItems();
 		if(archivos != null && !archivos.isEmpty() && directorioSalida != null){
 			procesar(lenguaje, archivos, directorioSalida);
@@ -150,32 +153,47 @@ public class FXMLFileChooserController implements Initializable {
 	}
 
 	private void procesar(Lenguaje lenguaje, List<File> archivos, File destino) {
-		try{
-			//Un Procesamiento consiste en una cadena de ComponenteDeProcesamiento aplicadas al lenguaje
-			Procesamiento procesamiento = new Procesamiento(lenguaje);
-			ExecutorService executorService = Executors.newSingleThreadExecutor();
-			if(archivos != null){
-				//Procesa en paralelo cada archivo seleccionado
-				archivos.parallelStream().forEach(fileIn -> {
-					//Crea el archivo de salida con el nombre compuesto por el nombre y extension original,
-					//pero añadiendo "ConMarcas" al final del mismo.
-					String[] nombreExtension = this.stripExtension(fileIn.getName());
-					File fileOut = new File(destino, nombreExtension[0] + "ConMarcas" + nombreExtension[1]);
-					if(fileOut.exists()){
-						//Si ya existe un archivo de salida con ese nombre lo borra
-						fileOut.delete();
-					}
-					//Ejecuta en un nuevo hilo el procesamiento del archivo
-					Thread thread = new Thread(() -> procesamiento.run(fileIn, fileOut));
-					executorService.execute(thread);
-				});
+		if(!lenguaje.toString().equals("C++ Procedural"))
+			try{
+				//Un Procesamiento consiste en una cadena de ComponenteDeProcesamiento aplicadas al lenguaje
+				Procesamiento procesamiento = new Procesamiento(lenguaje);
+				ExecutorService executorService = Executors.newSingleThreadExecutor();
+				if(archivos != null){
+					//Procesa en paralelo cada archivo seleccionado
+					archivos.parallelStream().forEach(fileIn -> {
+						//Crea el archivo de salida con el nombre compuesto por el nombre y extension original,
+						//pero añadiendo "ConMarcas" al final del mismo.
+						String[] nombreExtension = this.stripExtension(fileIn.getName());
+						File fileOut = new File(destino, nombreExtension[0] + "ConMarcas" + nombreExtension[1]);
+						if(fileOut.exists()){
+							//Si ya existe un archivo de salida con ese nombre lo borra
+							fileOut.delete();
+						}
+						//Ejecuta en un nuevo hilo el procesamiento del archivo
+						Thread thread = new Thread(() -> procesamiento.run(fileIn, fileOut));
+						executorService.execute(thread);
+					});
+				}
+				waitForTerminationAndExit(destino, executorService);
+			} catch(UnsupportedLanguageException e){
+				e.printStackTrace();
+				mostrarError(e.getMessage());
 			}
-			waitForTerminationAndExit(destino, executorService);
-		} catch(UnsupportedLanguageException e){
-			e.printStackTrace();
-			mostrarError(e.getMessage());
+		else {
+			for(File archivo: archivos) {
+				Cambiame procesamientoEnCPlusPlus = new Cambiame();
+				String[] argumentos = new String[2];
+				argumentos[0] = archivo.getPath();
+				argumentos[1] = destino.getPath() + "/" + archivo.getName().substring(0,archivo.getName().length()-4) + "ConMarcas.cpp";
+				System.out.println(argumentos[0] + " " + argumentos[1]);
+				try {
+					procesamientoEnCPlusPlus.main(argumentos);
+				}
+				catch(IOException e) {
+					System.out.println("excepcion");
+				}
+			}
 		}
-
 	}
 
 	private void waitForTerminationAndExit(File destino, ExecutorService executorService) {
